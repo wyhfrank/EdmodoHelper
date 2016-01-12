@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EdmodoHelper
 // @namespace    http://wuyuhao.cn/
-// @version      0.0.2
+// @version      0.0.3
 // @description  This script helps manipulate pages of edmodo.com.
 // @author       Wu Yuhao
 // @include  https://*.edmodo.com/*
@@ -9,6 +9,9 @@
 // @require  https://gist.githubusercontent.com/BrockA/2625891/raw/9c97aa67ff9c5d56be34a55ad6c18a314e5eb548/waitForKeyElements.js
 // @grant GM_setClipboard
 /* StartHistory
+
+v0.03 - 2016-1-12
+ - Feature: Automatically expand all comments when copying.
 
 v0.02 - 2016-1-9
  - Bug fix: Button won't appear when there's no page refresh.
@@ -82,26 +85,32 @@ function copyComments(msg) {
     showMsg("Comments are copied to clipboard!");
 }
 
-function clickExpandBtn(msg) {
+function clickExpandBtn(msg, callback) {
     var btn = msg.find(".show-more-comments");
     if(btn.length===0) {
-        copyComments(msg);
+        if (callback) callback(msg);
     } else {
         btn.click();
     }
 }
 
-function expandComments(msg) {
-    msg.find(".comments").bind('DOMNodeInserted',msg,clickExpandBtn);
-    clickExpandBtn(msg);
+function expandAllComments(msg, callback) {
+
+    var myVar = setInterval(function(){
+        
+        clickExpandBtn(msg, function() {
+            clearInterval(myVar);
+            if (callback) callback(msg);
+        });
+
+    }, 300);
 }
 
 
 function registerClickCallback() {
     $(".copy-comments").live("click",function(event){
         var msg=$(event.target).parents(".message");
-        //expandComments(msg);
-        copyComments(msg);
+        expandAllComments(msg, copyComments);
     });   
 }
 
