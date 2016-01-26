@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EdmodoHelper
 // @namespace    http://wuyuhao.cn/
-// @version      0.0.3
+// @version      0.0.4
 // @description  This script helps manipulate pages of edmodo.com.
 // @author       Wu Yuhao
 // @include  https://*.edmodo.com/*
@@ -10,10 +10,13 @@
 // @grant GM_setClipboard
 /* StartHistory
 
-v0.03 - 2016-1-12
+v0.0.4 - 2016-1-26
+ - Feature: Include post header to the copy result.
+
+v0.0.3 - 2016-1-12
  - Feature: Automatically expand all comments when copying.
 
-v0.02 - 2016-1-9
+v0.0.2 - 2016-1-9
  - Bug fix: Button won't appear when there's no page refresh.
  - Feature: Replace popup window with html div for message display.
 
@@ -51,9 +54,17 @@ function addCopyBtn(jNode) {
 function getText(obj) {
     if (obj===null || obj.length===0) return "";
 
-    var str = obj.html();
-    str = str.replace(/<br>/g,'\r\n').replace(/^\s+/g,'').replace(/\s+$/g,'');
+    var str = $.trim(obj.html().replace(/<br>/g,'\r\n'));
+    //str = str.replace(/<br>/g,'\r\n').replace(/^\s+/g,'').replace(/\s+$/g,'');
 
+    return str;
+}
+
+function getAllSubText(obj) {
+    var str = "";
+    obj.find("*").each(function(){
+        str += $.trim($(this).text()) + " ";
+    });
     return str;
 }
 
@@ -69,14 +80,13 @@ function findObj() {
 
 function copyComments(msg) {
     var str="";
+    str += getAllSubText(findObj(msg,".sender-and-recipients"));
+    str += "\n\n";
     str += getText(findObj(msg,".msg-content-text.long-post",".msg-content-text.summary"));
     str += "\n\n";
 
     msg.find(".comment").each(function(){
-        // str += getText(findObj($(this),".comment-sender-name"));
-        findObj($(this),".comment-header").find("*").each(function(){
-            str += getText($(this)) + " ";
-        });
+        str += getAllSubText(findObj($(this),".comment-header"));
         str += "\n\n";
         str += getText(findObj($(this),".full-comment", ".short-comment"));
         str += "\n\n";
