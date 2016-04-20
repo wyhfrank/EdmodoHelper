@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EdmodoHelper
 // @namespace    http://wuyuhao.cn/
-// @version      0.0.4
+// @version      0.0.5
 // @description  This script helps manipulate pages of edmodo.com.
 // @author       Wu Yuhao
 // @include  https://*.edmodo.com/*
@@ -9,6 +9,9 @@
 // @require  https://gist.githubusercontent.com/BrockA/2625891/raw/9c97aa67ff9c5d56be34a55ad6c18a314e5eb548/waitForKeyElements.js
 // @grant GM_setClipboard
 /* StartHistory
+
+v0.0.5 - 2016-4-20
+ - Bug fix: Update according to Edmodo site update.
 
 v0.0.4 - 2016-1-26
  - Feature: Include post header to the copy result.
@@ -46,7 +49,7 @@ function addAllCopyBtn() {
 
 function addCopyBtn(jNode) {
     if (jNode.find(".copy-comments").length===0) {
-        var txt='<li class="pull-left"> <div class="dot-li"></div> <a href="javascript:;" class="subtext ttip copy-comments" data-ttip="Copy comments">Copy</a> </li>';
+        var txt='<li class="pull-left"> <div class="dot"></div> <a href="javascript:;" class="subtext ttip copy-comments" data-ttip="Copy comments">Copy</a> </li>';
         jNode.append(txt);
     }
 }
@@ -54,7 +57,7 @@ function addCopyBtn(jNode) {
 function getText(obj) {
     if (obj===null || obj.length===0) return "";
 
-    var str = $.trim(obj.html().replace(/<br>/g,'\r\n'));
+    var str = $.trim(obj.html().replace(/<br> */g,'\r\n'));
     //str = str.replace(/<br>/g,'\r\n').replace(/^\s+/g,'').replace(/\s+$/g,'');
 
     return str;
@@ -74,30 +77,33 @@ function findObj() {
     for(var i=1; i<arguments.length; i++) {
         obj = parent.find(arguments[i]);
         if (obj.length!==0) break;
-    }    
+    }
     return obj;
 }
 
 function copyComments(msg) {
     var str="";
-    str += getAllSubText(findObj(msg,".sender-and-recipients"));
+    str += getAllSubText(findObj(msg,".messageinfo"));
     str += "\n\n";
-    str += getText(findObj(msg,".msg-content-text.long-post",".msg-content-text.summary"));
+    var cont = msg.find(".content-container");
+    str += getText(findObj(cont,".full-text", ".summary-text"));
     str += "\n\n";
 
-    msg.find(".comment").each(function(){
-        str += getAllSubText(findObj($(this),".comment-header"));
+    msg.find(".ns-reply-item").each(function(){
+        str += getAllSubText(findObj($(this),".userinfo"));
         str += "\n\n";
-        str += getText(findObj($(this),".full-comment", ".short-comment"));
+        str += getText(findObj($(this),".full-text", ".summary-text"));
         str += "\n\n";
     });
     GM_setClipboard(str);
     showMsg("Comments are copied to clipboard!");
+    console.log("copied");
 }
 
 function clickExpandBtn(msg, callback) {
-    var btn = msg.find(".show-more-comments");
-    if(btn.length===0) {
+    var btn = msg.find(".load-more");
+    var dis = btn.css("display");
+    if(dis==="none") {
         if (callback) callback(msg);
     } else {
         btn.click();
@@ -119,7 +125,7 @@ function expandAllComments(msg, callback) {
 
 function registerClickCallback() {
     $(".copy-comments").live("click",function(event){
-        var msg=$(event.target).parents(".message");
+        var msg=$(event.target).parents(".message-item");
         expandAllComments(msg, copyComments);
     });   
 }
@@ -128,5 +134,5 @@ $(function(){
 
     registerClickCallback();
     
-    waitForKeyElements(".message-footer",addCopyBtn);    
+    waitForKeyElements(".footer",addCopyBtn);    
 });
